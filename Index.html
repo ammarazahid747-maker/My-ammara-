@@ -1,0 +1,197 @@
+Ammara-AI-Android
+Ammara-AI-Android/
+│
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/ammara/ai/
+│   │   │   ├── MainActivity.kt
+│   │   │   ├── voice/
+│   │   │   │   ├── SpeechListener.kt
+│   │   │   │   └── TextSpeaker.kt
+│   │   │   ├── system/
+│   │   │   │   ├── NotificationReader.kt
+│   │   │   │   ├── BatteryMonitor.kt
+│   │   │   │   └── NetworkMonitor.kt
+│   │   │   └── utils/
+│   │   │       └── Constants.kt
+│   │   │
+│   │   ├── res/layout/
+│   │   │   └── activity_main.xml
+│   │   │
+│   │   └── AndroidManifest.xml
+│
+├── build.gradle
+├── settings.gradle
+└── README.md
+Ammara-AI-Android/
+│
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/ammara/ai/
+│   │   │   ├── MainActivity.kt
+│   │   │   ├── voice/
+│   │   │   │   ├── SpeechListener.kt
+│   │   │   │   └── TextSpeaker.kt
+│   │   │   ├── system/
+│   │   │   │   ├── NotificationReader.kt
+│   │   │   │   ├── BatteryMonitor.kt
+│   │   │   │   └── NetworkMonitor.kt
+│   │   │   └── utils/
+│   │   │       └── Constants.kt
+│   │   │
+│   │   ├── res/layout/
+│   │   │   └── activity_main.xml
+│   │   │
+│   │   └── AndroidManifest.xml
+│
+├── build.gradle
+├── settings.gradle
+└── README.md
+package com.ammara.ai.voice
+
+import android.content.Context
+import android.speech.tts.TextToSpeech
+import java.util.*
+
+class TextSpeaker(context: Context) : TextToSpeech.OnInitListener {
+
+    private val tts = TextToSpeech(context, this)
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts.language = Locale("ur", "PK")
+            tts.setSpeechRate(0.95f)
+        }
+    }
+
+    fun speak(text: String) {
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+    }
+}
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/chatText"
+            android:text="Ammara Ready..."
+            android:textSize="16sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </ScrollView>
+
+    <Button
+        android:id="@+id/micBtn"
+        android:text="🎙️ بولیں زاہد سر"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</LinearLayout>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ammara.ai">
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:label="Ammara AI"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
+Phase 1: Voice-based Urdu AI core (STT + TTS)
+package com.ammara.ai.system
+
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
+import android.util.Log
+import com.ammara.ai.voice.TextSpeaker
+
+class NotificationReader : NotificationListenerService() {
+
+    private lateinit var speaker: TextSpeaker
+
+    override fun onCreate() {
+        super.onCreate()
+        speaker = TextSpeaker(this)
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
+        val packageName = sbn.packageName
+        val extras = sbn.notification.extras
+        val title = extras.getString("android.title") ?: ""
+        val text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+        val message = "$packageName سے نوٹیفکیشن آیا ہے: $title - $text"
+        Log.d("AmmaraNotif", message)
+
+        // Read aloud
+        speaker.speak("زاہد سر، نیا نوٹیفکیشن آیا ہے: $text. کیا جواب بھیجنا ہے؟")
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        // Optional: notification removed logic
+    }
+}
+package com.ammara.ai.system
+
+import android.accessibilityservice.AccessibilityService
+import android.view.accessibility.AccessibilityEvent
+import android.content.Intent
+import android.net.Uri
+
+class MyAccessibilityService : AccessibilityService() {
+
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // Placeholder: future logic for button click, text type etc.
+    }
+
+    override fun onInterrupt() {}
+
+    // Simple app open function
+    fun openApp(packageName: String) {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    // Open YouTube and search
+    fun searchYouTube(query: String) {
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.data = Uri.parse("https://www.youtube.com/results?search_query=$query")
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+}<service
+    android:name=".system.NotificationReader"
+    android:label="Ammara Notifications"
+    android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+    <intent-filter>
+        <action android:name="android.service.notification.NotificationListenerService" />
+    </intent-filter>
+</service>
+
+<service
+    android:name=".system.MyAccessibilityService"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+</service>
+زاہد سر، ویڈسیکٹ سے میسج آیا ہے: "کیا آپ گھر پہنچ گئے؟" 
+کیا جواب بھیجنا ہے؟
+Phase 2: Notifications reading, voice alerts, simple app control
