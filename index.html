@@ -1,0 +1,61 @@
+import speech_recognition as sr
+import pyttsx3
+import os
+import webbrowser
+import psutil # بیٹری اور سسٹم چیک کرنے کے لیے
+
+class ZahidAssistant:
+    def __init__(self):
+        self.engine = pyttsx3.init()
+        self.voices = self.engine.getProperty('voices')
+        # پاکستانی لہجے کے قریب آواز سیٹ کرنا
+        self.engine.setProperty('rate', 170) 
+        self.engine.setProperty('volume', 1.0)
+
+    def speak(self, text):
+        print(f"Zahid-AI: {text}")
+        self.engine.say(text)
+        self.engine.runAndWait()
+
+    def listen(self):
+        r = sr.Recognizer()
+        with sr.Microphone() as source:
+            print("Listening...")
+            r.pause_threshold = 0.8
+            audio = r.listen(source)
+        try:
+            query = r.recognize_google(audio, language='ur-PK')
+            print(f"User: {query}")
+            return query.lower()
+        except:
+            return ""
+
+    def check_system(self):
+        battery = psutil.sensors_battery()
+        percent = battery.percent
+        if percent < 20:
+            self.speak(f"زاہد سر، آپ کے موبائل کی بیٹری صرف {percent} فیصد رہ گئی ہے۔ پلیز چارجر لگا لیں۔")
+        
+    def execute(self, command):
+        if 'یوٹیوب' in command and 'سرچ' in command:
+            search_term = command.replace("یوٹیوب پہ", "").replace("سرچ کرو", "")
+            self.speak(f"جی زاہد سر، یوٹیوب پر {search_term} سرچ کر رہی ہوں")
+            webbrowser.open(f"https://www.youtube.com/results?search_query={search_term}")
+
+        elif 'کیسے ہو' in command:
+            self.speak("میں بالکل ٹھیک ہوں زاہد سر، آپ کا کیا حال ہے؟")
+
+        elif 'وقت' in command:
+            from datetime import datetime
+            time = datetime.now().strftime("%I:%M %p")
+            self.speak(f"زاہد سر، ابھی وقت ہوا ہے {time}")
+
+# --- پروگرام شروع کرنا ---
+assistant = ZahidAssistant()
+assistant.speak("اسلام و علیکم زاہد سر! سسٹم آن ہو گیا ہے۔")
+assistant.check_system()
+
+while True:
+    cmd = assistant.listen()
+    if cmd:
+        assistant.execute(cmd)
